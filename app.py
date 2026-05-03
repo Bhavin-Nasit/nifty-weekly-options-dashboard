@@ -1,45 +1,39 @@
 import streamlit as st
 import time
 
-from src.config import REFRESH_SECONDS, DANGER_DISTANCE_POINTS
-from src.signals import add_institutional_view, pcr
-from src.institutional_engine import compute_scores, market_bias, detect_danger_zones
+from src.data_fetcher import get_weekly_nifty_tokens
+from src.websocket_live import start_websocket
 
-# Placeholder minimal dataset (replace with real fetcher next push)
-import pandas as pd
+st.title("Nifty Live Institutional Dashboard (Zerodha WebSocket)")
 
-st.title("Nifty Institutional Dashboard (PRO)")
+try:
+    tokens_df = get_weekly_nifty_tokens()
+    tokens = tokens_df['instrument_token'].tolist()
 
-# Dummy data placeholder
+    st.info(f"Subscribing to {len(tokens)} instruments...")
 
-data = pd.DataFrame({
-    'strike':[23800,23900,24000,24100,24200],
-    'ce_oi':[100,200,300,400,500],
-    'pe_oi':[500,400,300,200,100],
-    'ce_oi_change':[50,100,150,200,250],
-    'pe_oi_change':[200,150,100,50,20],
-    'ce_ltp_change':[-10,-8,-5,-3,-1],
-    'pe_ltp_change':[-2,-4,-6,-8,-10]
-})
+    live_ticks = start_websocket(tokens)
 
-df = add_institutional_view(data)
-df = compute_scores(df)
+    time.sleep(3)
 
-bias = market_bias(df)
+    if not live_ticks:
+        st.warning("Waiting for live ticks...")
+    else:
+        st.success(f"Live ticks received: {len(live_ticks)}")
 
-st.metric("Market Bias", bias)
+        preview = []
+        for k, v in list(live_ticks.items())[:15]:
+            preview.append({
+                "token": k,
+                "ltp": v.get("last_price"),
+                "oi": v.get("oi"),
+                "volume": v.get("volume")
+            })
 
-st.subheader("Institutional Signals")
-st.dataframe(df)
+        st.dataframe(preview)
 
-st.subheader("Danger Zones")
-danger = detect_danger_zones(df, 24000, DANGER_DISTANCE_POINTS)
-for d in danger:
-    st.warning(d)
+except Exception as e:
+    st.error(str(e))
+    st.info("Check Kite API key, token, and subscription")
 
-st.subheader("PCR")
-st.write(pcr(df))
-
-st.caption("Auto-refreshing...")
-time.sleep(REFRESH_SECONDS)
-st.rerun()
+st.caption("Live WebSocket feed active")
