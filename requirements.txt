@@ -1,0 +1,6 @@
+streamlit
+kiteconnect
+pandas
+requests
+python-dotenv
+plotly
