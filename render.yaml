@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: nifty-weekly-options-dashboard
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: streamlit run app.py --server.port $PORT --server.address 0.0.0.0
+    envVars:
+      - key: KITE_API_KEY
+        sync: false
+      - key: KITE_API_SECRET
+        sync: false
+      - key: KITE_ACCESS_TOKEN
+        sync: false
+      - key: DISCORD_WEBHOOK_URL
+        sync: false
+      - key: STRIKE_RANGE
+        value: 10
+      - key: OI_ALERT_THRESHOLD
+        value: 50000
+      - key: REFRESH_SECONDS
+        value: 60
