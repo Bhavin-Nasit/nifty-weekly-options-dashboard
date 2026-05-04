@@ -25,5 +25,7 @@ services:
         value: 3
       - key: NSE_TIMEOUT_SECONDS
         value: 10
+      - key: BHAVCOPY_LOOKBACK_DAYS
+        value: 10
       - key: YFINANCE_SYMBOL
         value: ^NSEI
