@@ -25,7 +25,7 @@ try:
         st.info(snapshot.message)
 
     if df.empty:
-        st.warning("No option-chain rows available yet. Waiting for the next refresh.")
+        st.warning("No option-chain rows are available from the active fallback source.")
     else:
         calls, puts = get_zones(df)
 

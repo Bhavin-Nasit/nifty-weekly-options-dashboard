@@ -37,11 +37,11 @@ def get_market_snapshot() -> MarketSnapshot:
 
         try:
             if source == "kite":
-                return _kite_snapshot()
+                return _with_fallback_notes(_kite_snapshot(), errors)
             if source == "nse":
-                return _nse_snapshot()
+                return _with_fallback_notes(_nse_snapshot(), errors)
             if source == "yfinance":
-                return _yfinance_snapshot()
+                return _with_fallback_notes(_yfinance_snapshot(), errors)
         except Exception as exc:
             errors.append(f"{source}: {exc}")
 
@@ -54,6 +54,15 @@ def _source_order() -> list[str]:
     if DATA_SOURCE == "free":
         return ["nse", "yfinance"]
     return ["kite", "nse", "yfinance"]
+
+
+def _with_fallback_notes(snapshot: MarketSnapshot, errors: list[str]) -> MarketSnapshot:
+    if not errors:
+        return snapshot
+
+    notes = "Fallback notes: " + " | ".join(errors)
+    snapshot.message = f"{snapshot.message} {notes}".strip()
+    return snapshot
 
 
 def _kite_configured() -> bool:

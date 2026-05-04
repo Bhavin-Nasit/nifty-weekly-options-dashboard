@@ -33,6 +33,9 @@ _HEADERS = {
 def fetch_nse_option_snapshot(symbol: str) -> tuple[pd.DataFrame, float | None, str]:
     payload, stale = _fetch_payload_with_cache(symbol)
     df, spot = _payload_to_dataframe(payload)
+    if df.empty:
+        raise NseDataError(f"NSE response did not contain option-chain rows. {_payload_summary(payload)}")
+
     source = "NSE option-chain snapshot"
     if stale:
         source += " (cached)"
@@ -79,12 +82,14 @@ def _request_option_chain(symbol: str) -> dict[str, Any]:
 
 def _payload_to_dataframe(payload: dict[str, Any]) -> tuple[pd.DataFrame, float | None]:
     records = payload.get("records") or {}
+    filtered = payload.get("filtered") or {}
     rows = []
     spot = _as_float(records.get("underlyingValue"))
     expiry_dates = records.get("expiryDates") or []
     nearest_expiry = expiry_dates[0] if expiry_dates else None
+    option_chain_rows = records.get("data") or filtered.get("data") or []
 
-    for item in records.get("data") or []:
+    for item in option_chain_rows:
         if nearest_expiry and item.get("expiryDate") != nearest_expiry:
             continue
 
@@ -120,6 +125,14 @@ def _payload_to_dataframe(payload: dict[str, Any]) -> tuple[pd.DataFrame, float 
 
     df = _filter_atm_strikes(df, spot)
     return df.sort_values(["strike", "type"]).reset_index(drop=True), spot
+
+
+def _payload_summary(payload: dict[str, Any]) -> str:
+    records = payload.get("records") or {}
+    filtered = payload.get("filtered") or {}
+    records_count = len(records.get("data") or [])
+    filtered_count = len(filtered.get("data") or [])
+    return f"records.data={records_count}, filtered.data={filtered_count}, keys={list(payload.keys())}"
 
 
 def _filter_atm_strikes(df: pd.DataFrame, spot: float | None) -> pd.DataFrame:
